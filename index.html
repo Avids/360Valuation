@@ -6,154 +6,309 @@
   <title>Valuation Compass — Multi-Model Stock Valuation</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
-      --bg: #060a12; --bg-elevated: #0b1120; --card: #0f1729; --card-border: #182540;
-      --text: #e2e8f0; --text-dim: #94a3b8; --text-muted: #4a5e7a;
-      --accent: #00d4aa; --accent-dim: rgba(0,212,170,0.12);
-      --danger: #ff4757; --danger-dim: rgba(255,71,87,0.12);
-      --warning: #ffa502; --warning-dim: rgba(255,165,2,0.12);
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --card-border: #e2e8f0;
+      --text: #0f172a;
+      --text-dim: #475569;
+      --text-muted: #94a3b8;
+      --accent: #2563eb;
+      --accent-bg: #eff6ff;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --warning: #d97706;
+      --warning-bg: #fffbeb;
+      --bar-track: #f1f5f9;
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
-    h1,h2,h3 { font-family: 'DM Serif Display', serif; }
-
-    .bg-dots { position: fixed; inset:0; z-index:0; pointer-events:none; background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0); background-size: 36px 36px; }
-    .bg-glow { position:fixed; border-radius:50%; filter:blur(140px); pointer-events:none; z-index:0; }
-    .glow-1 { width:700px; height:700px; top:-300px; right:-250px; background:var(--accent); opacity:0.1; }
-    .glow-2 { width:500px; height:500px; bottom:-200px; left:-200px; background:#ff4757; opacity:0.06; }
-
-    .search-box { background: var(--card); border: 1.5px solid var(--card-border); color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; padding: 0.95rem 5.5rem 0.95rem 3.2rem; border-radius: 14px; width: 100%; max-width: 500px; outline: none; transition: border-color 0.3s, box-shadow 0.3s; }
-    .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim), 0 0 40px rgba(0,212,170,0.08); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Search */
+    .search-box {
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      padding: 0.85rem 5rem 0.85rem 3rem;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .search-box:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
     .search-box::placeholder { color: var(--text-muted); }
-    .search-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: var(--accent); color: #060a12; border: none; padding: 0.65rem 1.2rem; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: background 0.2s; }
-    .search-btn:hover { background: #00eabb; }
+    .search-btn {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      background: var(--accent); color: white; border: none; padding: 0.6rem 1.2rem;
+      border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: background 0.2s;
+    }
+    .search-btn:hover { background: #1d4ed8; }
 
-    .qk { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.85rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-    .qk:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+    .qk {
+      background: var(--card); border: 1px solid var(--card-border); color: var(--text-dim);
+      font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 600;
+      padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+    }
+    .qk:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 
-    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 1.5rem; }
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
 
-    /* CHART GRID */
-    .chart-grid { display: grid; grid-template-columns: 200px 1fr 100px; gap: 0.8rem 1rem; align-items: center; position: relative; }
-    .chart-label { font-size: 0.82rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
-    .label-dot { width: 8px; height:8px; border-radius:50%; flex-shrink:0; }
+    /* Clean Chart Layout */
+    .chart-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .chart-row:last-child { margin-bottom: 0; }
     
-    .bar-wrap { height: 32px; position: relative; background: rgba(255,255,255,0.02); border-radius: 6px; overflow: hidden; }
-    .bar-fill { height:100%; border-radius: 6px; width: 0; transition: width 1s cubic-bezier(0.22,1,0.36,1); position: relative; overflow: hidden; }
-    .bar-fill::before { content:''; position:absolute; inset:0; border-radius:inherit; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%); }
+    .chart-label {
+      width: 180px;
+      flex-shrink: 0;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     
-    /* Badge Style for Percentages (CAGR, MOS) */
-    .stat-badge { padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; text-align: center; white-space: nowrap; }
-    .badge-green { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(0,212,170,0.2); }
-    .badge-red { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(255,71,87,0.2); }
+    .bar-container {
+      flex-grow: 1;
+      height: 28px;
+      background: var(--bar-track);
+      border-radius: 6px;
+      position: relative;
+      overflow: visible; /* Allows price line to sit on top */
+    }
+    
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      width: 0;
+      transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      z-index: 1;
+    }
+    
+    .chart-value {
+      width: 80px;
+      flex-shrink: 0;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
 
-    .chart-val { text-align: right; font-size: 0.92rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    /* Current Price Marker */
+    .price-marker {
+      position: absolute;
+      top: -6px;
+      bottom: -6px;
+      width: 2px;
+      background: var(--warning);
+      z-index: 2;
+      opacity: 0;
+      transition: left 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease 0.5s;
+    }
+    .price-marker.show { opacity: 1; }
+    .price-marker::before {
+      content: attr(data-label);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 4px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--warning);
+      white-space: nowrap;
+      background: var(--warning-bg);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
 
-    /* Price Line */
-    .price-line-cell { grid-column: 2; grid-row: 1 / -1; position: relative; pointer-events: none; height: 100%; }
-    .price-line-el { position: absolute; top: -12px; bottom: -12px; width: 2px; background: var(--warning); left: 0%; opacity: 0; transition: left 1s cubic-bezier(0.22,1,0.36,1), opacity 0.5s ease 0.3s; z-index: 5; }
-    .price-line-el.show { opacity:1; }
-    .price-line-el::before { content:'Price'; position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-size:0.6rem; font-weight:700; color:var(--warning); white-space:nowrap; letter-spacing:0.06em; text-transform:uppercase; }
-    .price-line-el::after { content:''; position:absolute; inset:0; left:-5px; width:12px; background: rgba(255,165,2,0.1); border-radius:3px; }
+    /* Metrics Grid */
+    .metric-card {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .metric-val { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .metric-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
-    .skel { background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,0.04) 50%, var(--card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    /* Badges */
+    .badge-safe { background: var(--accent-bg); color: var(--accent); font-weight: 600; padding: 0.5rem 1rem; border-radius: 8px; }
+    .badge-risk { background: var(--danger-bg); color: var(--danger); font-weight: 600; padding: 0.5rem 1rem; border-radius: 8px; }
+    
+    .warning-box {
+      background: var(--warning-bg);
+      border: 1px solid #fde68a;
+      color: var(--warning);
+      font-size: 0.8rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
 
-    .badge-ok { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(0,212,170,0.3); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;}
-    .badge-bad { background:var(--danger-dim); color:var(--danger); border:1px solid rgba(255,71,87,0.3); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;}
-
-    .mtag { display:flex; flex-direction:column; align-items:center; padding:0.65rem 0.5rem; background:var(--bg-elevated); border-radius:10px; border:1px solid var(--card-border); min-width: 0; }
-    .mtag-v { font-size:0.92rem; font-weight:600; font-variant-numeric:tabular-nums; }
-    .mtag-l { font-size:0.65rem; color:var(--text-muted); margin-top:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-
-    .fade-up { opacity:0; transform:translateY(18px); animation: fadeUp 0.55s ease forwards; }
+    /* States */
+    .skel { background: #e2e8f0; border-radius: 4px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    
+    .fade-up { opacity:0; transform:translateY(10px); animation: fadeUp 0.4s ease forwards; }
     @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
 
-    .toast-el { position:fixed; bottom:2rem; left:50%; z-index:200; transform:translateX(-50%) translateY(100px); background:var(--card); border:1px solid var(--danger); color:var(--danger); padding:0.7rem 1.4rem; border-radius:12px; font-size:0.82rem; box-shadow:0 10px 40px rgba(0,0,0,0.5); transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
-    .toast-el.on { transform:translateX(-50%) translateY(0); }
-
-    @media(max-width:860px){ .chart-grid { grid-template-columns:140px 1fr 90px; gap:0.5rem 0.6rem; } .chart-label { font-size:0.72rem; } }
-    @media(max-width:540px){ .chart-grid { grid-template-columns:1fr; gap:0.5rem 0; } .chart-label { font-size:0.7rem; } .chart-val { font-size:0.78rem; text-align:left; } .price-line-cell { display:none; } }
-    @media(prefers-reduced-motion:reduce){ .bar-fill,.price-line-el { transition:none; } .skel { animation:none; } .fade-up { animation:none; opacity:1; transform:none; } }
+    /* Responsive */
+    @media(max-width: 640px) {
+      .chart-label { width: 100px; font-size: 0.7rem; }
+      .chart-value { width: 65px; font-size: 0.75rem; }
+      .bar-container { height: 22px; }
+    }
   </style>
 </head>
 <body>
-  <div class="bg-dots"></div><div class="bg-glow glow-1"></div><div class="bg-glow glow-2"></div>
-
-  <div class="relative z-10 min-h-screen flex flex-col">
-    <header class="py-5 px-5">
-      <div class="max-w-5xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,var(--accent),#0a7e63);"><i class="fas fa-compass text-white text-sm"></i></div>
-          <div>
-            <h1 class="text-base leading-tight" style="color:var(--accent);">Valuation Compass</h1>
-            <p class="text-[0.65rem]" style="color:var(--text-muted);">Multi-Model Intrinsic Value</p>
-          </div>
+  <div class="max-w-5xl mx-auto px-4 py-8">
+    
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+          <i class="fas fa-compass text-white text-sm"></i>
         </div>
+        <div>
+          <h1 class="text-lg font-bold text-gray-900 leading-tight">Valuation Compass</h1>
+          <p class="text-[0.65rem] text-gray-400 font-medium">Multi-Model Intrinsic Value</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-400 font-medium hidden sm:block">
+        Powered by Yahoo Finance
       </div>
     </header>
 
-    <main class="flex-1 px-5 pb-12">
-      <div class="max-w-5xl mx-auto">
-        <section class="text-center pt-6 pb-10">
-          <h2 class="text-3xl md:text-[2.6rem] mb-2.5 leading-tight">Discover Intrinsic Value</h2>
-          <p class="mb-7 mx-auto text-sm" style="color:var(--text-dim); max-width:460px;">Compare multiple valuation models against the current price.</p>
-          <div class="relative inline-block w-full max-w-[500px]">
-            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2" style="color:var(--text-muted);"></i>
-            <input type="text" id="tickerInput" class="search-box" placeholder="Enter ticker (e.g. AAPL)" autocomplete="off" spellcheck="false">
-            <button id="searchBtn" class="search-btn">Analyze</button>
-          </div>
-          <div class="mt-4 flex flex-wrap justify-center gap-2">
-            <button class="qk" data-symbol="AAPL">AAPL</button>
-            <button class="qk" data-symbol="MSFT">MSFT</button>
-            <button class="qk" data-symbol="DE">DE</button>
-            <button class="qk" data-symbol="GOOGL">GOOGL</button>
-            <button class="qk" data-symbol="TSLA">TSLA</button>
-          </div>
-        </section>
+    <!-- Search -->
+    <section class="text-center mb-10">
+      <h2 class="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Discover Intrinsic Value</h2>
+      <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">Compare multiple valuation models against the current price to find your margin of safety.</p>
+      
+      <div class="relative inline-block w-full max-w-[480px]">
+        <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <input type="text" id="tickerInput" class="search-box" placeholder="Enter ticker (e.g. AAPL)" autocomplete="off" spellcheck="false">
+        <button id="searchBtn" class="search-btn">Analyze</button>
+      </div>
 
-        <div id="loadingState" class="hidden max-w-3xl mx-auto"><div class="card mb-4 flex items-center gap-4"><div class="skel w-12 h-12 rounded-full flex-shrink-0"></div><div class="flex-1"><div class="skel h-5 w-48 mb-2"></div><div class="skel h-3 w-32"></div></div></div><div class="card"><div class="space-y-4"><div class="skel h-8 w-full"></div><div class="skel h-8 w-3/4"></div><div class="skel h-8 w-5/6"></div></div></div></div>
+      <div class="mt-4 flex flex-wrap justify-center gap-2">
+        <button class="qk" data-symbol="AAPL">AAPL</button>
+        <button class="qk" data-symbol="MSFT">MSFT</button>
+        <button class="qk" data-symbol="NVDA">NVDA</button>
+        <button class="qk" data-symbol="DE">DE</button>
+        <button class="qk" data-symbol="TSLA">TSLA</button>
+      </div>
+    </section>
 
-        <div id="errorState" class="hidden max-w-xl mx-auto text-center py-10">
-          <i class="fas fa-exclamation-triangle text-4xl mb-4" style="color:var(--danger);"></i>
-          <h3 class="text-xl mb-2" style="color:var(--danger);">Analysis Failed</h3>
-          <p id="errorMessage" class="text-sm" style="color:var(--text-dim);"></p>
+    <!-- Loading State -->
+    <div id="loadingState" class="hidden">
+      <div class="card mb-4 flex items-center gap-4">
+        <div class="skel w-10 h-10 rounded-full"></div>
+        <div class="flex-1"><div class="skel h-4 w-40 mb-2"></div><div class="skel h-3 w-24"></div></div>
+      </div>
+      <div class="card space-y-3">
+        <div class="skel h-6 w-full"></div><div class="skel h-6 w-3/4"></div><div class="skel h-6 w-5/6"></div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden text-center py-10 card">
+      <i class="fas fa-exclamation-circle text-3xl text-red-500 mb-3"></i>
+      <h3 class="text-lg font-semibold text-gray-900 mb-1">Analysis Failed</h3>
+      <p id="errorMessage" class="text-sm text-gray-500"></p>
+    </div>
+
+    <!-- Results State -->
+    <div id="resultsState" class="hidden">
+      
+      <!-- Company Header -->
+      <div class="card mb-4 fade-up">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900" id="resName">AAPL</h2>
+            <p class="text-xs text-gray-500 mt-0.5"><span id="resSector">Technology</span> • <span id="resIndustry">Consumer Electronics</span></p>
+          </div>
+          <div class="flex items-center gap-6">
+            <div>
+              <div class="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Price</div>
+              <div class="text-2xl font-bold text-gray-900" id="resPrice">$0.00</div>
+            </div>
+            <div>
+              <div class="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">GF Value</div>
+              <div class="text-2xl font-bold text-blue-600" id="resGfValue">$0.00</div>
+            </div>
+            <div id="resMosBadge"></div>
+          </div>
         </div>
-
-        <div id="resultsState" class="hidden max-w-5xl mx-auto">
-          <div class="card mb-4 fade-up">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 class="text-2xl mb-1" id="resName">AAPL</h2>
-                <div class="flex items-center gap-2 text-xs" style="color:var(--text-muted);"><span id="resSector">Technology</span> • <span id="resIndustry">Consumer Electronics</span></div>
-              </div>
-              <div class="flex items-end gap-6">
-                <div class="text-right"><div class="text-[0.65rem] uppercase tracking-wider mb-1" style="color:var(--text-muted);">Current Price</div><div class="text-2xl font-bold" id="resPrice">$0.00</div></div>
-                <div class="text-right"><div class="text-[0.65rem] uppercase tracking-wider mb-1" style="color:var(--text-muted);">GF Value</div><div class="text-2xl font-bold" style="color:var(--danger);" id="resGfValue">$0.00</div></div>
-                <div id="resMosBadge"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card mb-4 fade-up" style="animation-delay: 0.1s;">
-            <h3 class="text-sm font-semibold mb-5 uppercase tracking-wider" style="color:var(--text-muted);">Valuation Models vs Price</h3>
-            <div class="chart-grid" id="chartContainer">
-              <div class="price-line-cell"><div class="price-line-el" id="priceLineEl"></div></div>
-            </div>
-          </div>
-
-          <div class="card fade-up" style="animation-delay: 0.2s;">
-            <h3 class="text-sm font-semibold mb-4 uppercase tracking-wider" style="color:var(--text-muted);">Key Fundamentals</h3>
-            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2" id="metricsContainer"></div>
-          </div>
+        <div id="techWarning" class="hidden warning-box mt-4">
+          <i class="fas fa-info-circle mr-1"></i> Traditional valuation models (DCF, Graham) often output $0 or extremely low values for hyper-growth tech stocks due to exponential revenue scaling. Take these specific dollar values with a grain of salt.
         </div>
       </div>
-    </main>
+
+      <!-- Chart Section -->
+      <div class="card mb-4 fade-up" style="animation-delay: 0.1s;">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5">Valuation Models vs Price</h3>
+        <div id="chartContainer">
+          <!-- Rows injected by JS -->
+        </div>
+      </div>
+
+      <!-- Growth & Safety Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 fade-up" style="animation-delay: 0.15s;">
+        <div class="card flex flex-col items-center justify-center py-4">
+          <div class="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-wider mb-1">Margin of Safety</div>
+          <div id="mosMetric" class="text-2xl font-bold">N/A</div>
+        </div>
+        <div class="card flex flex-col items-center justify-center py-4">
+          <div class="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-wider mb-1">5Y Revenue CAGR</div>
+          <div id="cagrRevMetric" class="text-2xl font-bold text-gray-900">N/A</div>
+        </div>
+        <div class="card flex flex-col items-center justify-center py-4">
+          <div class="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-wider mb-1">5Y Net Inc. CAGR</div>
+          <div id="cagrIncMetric" class="text-2xl font-bold text-gray-900">N/A</div>
+        </div>
+      </div>
+
+      <!-- Fundamentals Grid -->
+      <div class="card fade-up" style="animation-delay: 0.2s;">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Key Fundamentals</h3>
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3" id="metricsContainer"></div>
+      </div>
+
+    </div>
   </div>
-  <div class="toast-el" id="toast"></div>
 
   <script>
     const tickerInput = document.getElementById('tickerInput');
@@ -164,14 +319,11 @@
     const resultsState = document.getElementById('resultsState');
     const chartContainer = document.getElementById('chartContainer');
     const metricsContainer = document.getElementById('metricsContainer');
-    const priceLineEl = document.getElementById('priceLineEl');
-    const toastEl = document.getElementById('toast');
 
     searchBtn.addEventListener('click', handleSearch);
     tickerInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(); });
     document.querySelectorAll('.qk').forEach(btn => { btn.addEventListener('click', () => { tickerInput.value = btn.dataset.symbol; handleSearch(); }); });
 
-    function showToast(msg) { toastEl.innerText = msg; toastEl.classList.add('on'); setTimeout(() => toastEl.classList.remove('on'), 4000); }
     function showView(view) { [loadingState, errorState, resultsState].forEach(el => el.classList.add('hidden')); if (view === 'loading') loadingState.classList.remove('hidden'); if (view === 'error') errorState.classList.remove('hidden'); if (view === 'results') resultsState.classList.remove('hidden'); }
 
     async function handleSearch() {
@@ -180,6 +332,11 @@
       showView('loading');
       try {
         const res = await fetch(`/api/stock?symbol=${encodeURIComponent(symbol)}`);
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const errorText = await res.text();
+          throw new Error(`Server setup error: ${errorText.substring(0, 100)}`);
+        }
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to fetch data');
         renderResults(data);
@@ -198,76 +355,96 @@
       document.getElementById('resPrice').innerText = `$${currentPrice.toFixed(2)}`;
       document.getElementById('resGfValue').innerText = gfValue ? `$${gfValue.toFixed(2)}` : 'N/A';
 
+      // MOS Header Badge
       const mosBadge = document.getElementById('resMosBadge');
       if (data.marginOfSafety !== null) {
         const isSafe = data.marginOfSafety >= 0;
-        mosBadge.innerHTML = `<div class="${isSafe ? 'badge-ok' : 'badge-bad'}">${isSafe ? '+' : ''}${data.marginOfSafety.toFixed(1)}% MOS</div>`;
+        mosBadge.innerHTML = `<div class="${isSafe ? 'badge-safe' : 'badge-risk'} text-sm">${isSafe ? '+' : ''}${data.marginOfSafety.toFixed(1)}%</div>`;
       } else { mosBadge.innerHTML = ''; }
 
-      // Separate Currency Models and Percentage Models
-      const currencyModels = [
-        { label: 'Graham Number', value: data.grahamNumber, tip: '√(22.5 × EPS × Book Value)' },
-        { label: 'Earnings Power Value', value: data.epv, tip: 'Avg EPS / WACC' },
-        { label: 'Peter Lynch Fair Value', value: data.peterLynchValue, tip: 'EPS × (1 + Growth)' },
-        { label: 'Peter Lynch Growth', value: data.peterLynchGrowthValue, tip: 'EPS × (1 + Growth)^5' },
-        { label: 'Median PS Value', value: data.psFairValue, tip: 'Revenue/Share × Fair Multiple' },
-        { label: 'DCF Fair Value', value: data.dcfValue, tip: 'Discounted Cash Flows + Terminal' },
-        { label: 'GF Value (Weighted)', value: gfValue, tip: 'Weighted Combo', color: '#ff4757' }, // Red like target image
-        { label: 'Analyst Target', value: data.analystTarget, tip: 'Wall St. Consensus' }
+      // Tech Warning Logic
+      const techWarning = document.getElementById('techWarning');
+      // If price is massively higher than GF, or GF is suspiciously low for a large cap
+      if (gfValue && currentPrice > gfValue * 5 && info.marketCap > 100000000000) {
+        techWarning.classList.remove('hidden');
+      } else {
+        techWarning.classList.add('hidden');
+      }
+
+      // Metrics (Percentages)
+      const mosMetric = document.getElementById('mosMetric');
+      if (data.marginOfSafety !== null) {
+        const isSafe = data.marginOfSafety >= 0;
+        mosMetric.innerText = `${isSafe ? '+' : ''}${data.marginOfSafety.toFixed(1)}%`;
+        mosMetric.className = `text-2xl font-bold ${isSafe ? 'text-blue-600' : 'text-red-600'}`;
+      } else { mosMetric.innerText = 'N/A'; mosMetric.className = 'text-2xl font-bold text-gray-400'; }
+
+      document.getElementById('cagrRevMetric').innerText = data.revenueCAGR !== null ? `${data.revenueCAGR.toFixed(1)}%` : 'N/A';
+      document.getElementById('cagrIncMetric').innerText = data.netIncomeCAGR !== null ? `${data.netIncomeCAGR.toFixed(1)}%` : 'N/A';
+
+      // Chart Data (ONLY Dollar Values)
+      const models = [
+        { label: 'Graham Number', value: data.grahamNumber },
+        { label: 'Earnings Power Value', value: data.epv },
+        { label: 'Peter Lynch Fair Value', value: data.peterLynchValue },
+        { label: 'Peter Lynch 5Y Growth', value: data.peterLynchGrowthValue },
+        { label: 'Median PS Value', value: data.psFairValue },
+        { label: 'DCF Fair Value', value: data.dcfValue },
+        { label: 'GF Value (Weighted)', value: gfValue, color: 'var(--accent)' },
+        { label: 'Analyst Target', value: data.analystTarget, color: '#7c3aed' } // Purple for Wall St
       ];
 
-      const percentModels = [
-        { label: 'Margin of Safety', value: data.marginOfSafety, tip: '(GF Value - Price) / GF Value', isPercent: true },
-        { label: '5Y Revenue CAGR', value: data.revenueCAGR, tip: '5-Year Compound Annual Growth Rate', isPercent: true },
-        { label: '5Y Net Inc. CAGR', value: data.netIncomeCAGR, tip: '5-Year Net Income Growth Rate', isPercent: true }
-      ];
+      // Calculate Scale (Include current price to give context, but handle extremes)
+      const validValues = models.map(m => m.value).filter(v => v !== null && v > 0);
+      validValues.push(currentPrice);
+      
+      // If price is absurdly high compared to models, cap the scale to prevent bars from vanishing
+      const maxModel = Math.max(...models.map(m => m.value || 0));
+      let maxScale = Math.max(...validValues) * 1.15; 
+      if (currentPrice > maxModel * 2) {
+        maxScale = maxModel * 1.5; // Force scale to respect the models
+      }
 
-      // Calculate scale based ONLY on currency models to prevent breaking the chart
-      const currValues = currencyModels.map(m => m.value).filter(v => v !== null && v > 0);
-      currValues.push(currentPrice);
-      const maxScale = Math.max(...currValues) * 1.2;
-
-      const priceLineCell = document.querySelector('.price-line-cell');
       chartContainer.innerHTML = '';
-      chartContainer.appendChild(priceLineCell);
 
-      // Render Currency Models
-      currencyModels.forEach(model => {
+      // Build Rows
+      models.forEach((model, index) => {
         if (model.value === null) return;
-        const widthPercent = Math.min((model.value / maxScale) * 100, 100);
-        const isUndervalued = model.value > currentPrice;
-        const barColor = model.color || (isUndervalued ? 'var(--accent)' : 'var(--danger)');
         
-        const rowHtml = `
-          <div class="chart-label"><span class="label-dot" style="background:${barColor};"></span>${model.label}<span class="info-btn" title="${model.tip}">?</span></div>
-          <div class="bar-wrap"><div class="bar-fill" style="width: ${widthPercent}%; background-color: ${barColor};"></div></div>
-          <div class="chart-val" style="color: ${barColor};">$${model.value.toFixed(2)}</div>
-        `;
-        chartContainer.insertAdjacentHTML('beforeend', rowHtml);
-      });
+        const widthPercent = Math.min((model.value / maxScale) * 100, 95);
+        const isUndervalued = model.value > currentPrice;
+        let barColor = model.color || (isUndervalued ? '#16a34a' : '#dc2626'); // Green if > price, Red if < price
 
-      // Render Percentage Models as Badges (No scaled bars)
-      percentModels.forEach(model => {
-        if (model.value === null) return;
-        const isPositive = model.value >= 0;
-        const badgeClass = isPositive ? 'badge-green' : 'badge-red';
-        const displayVal = `${isPositive ? '+' : ''}${model.value.toFixed(1)}%`;
+        // If current price is off the charts high, make everything green to show they are undervalued relative to reality
+        if (currentPrice > maxModel * 2) barColor = '#16a34a';
 
-        const rowHtml = `
-          <div class="chart-label"><span class="label-dot" style="background: ${isPositive ? 'var(--accent)' : 'var(--danger)'};"></span>${model.label}</div>
-          <div class="flex justify-start"><span class="stat-badge ${badgeClass}">${displayVal}</span></div>
-          <div class="chart-val" style="color: var(--text-dim); font-size:0.8rem;">${model.label.includes('CAGR') ? 'Annualized' : 'Discount'}</div>
+        const row = document.createElement('div');
+        row.className = 'chart-row';
+        row.innerHTML = `
+          <div class="chart-label" title="${model.label}">${model.label}</div>
+          <div class="bar-container">
+            <div class="bar-fill" style="width: ${widthPercent}%; background-color: ${barColor}; opacity: 0.85;"></div>
+            ${index === 0 ? `<div class="price-marker" id="priceMarker" data-label="Price $${currentPrice.toFixed(2)}" style="left: ${Math.min((currentPrice / maxScale) * 100, 98)}%"></div>` : ''}
+          </div>
+          <div class="chart-value" style="color: ${barColor}">$${model.value.toFixed(2)}</div>
         `;
-        chartContainer.insertAdjacentHTML('beforeend', rowHtml);
+        chartContainer.appendChild(row);
       });
 
       // Trigger Animations
-      const pricePercent = Math.min((currentPrice / maxScale) * 100, 100);
-      priceLineEl.style.left = `${pricePercent}%`;
-      void chartContainer.offsetWidth;
-      priceLineEl.classList.add('show');
+      setTimeout(() => {
+        document.querySelectorAll('.bar-fill').forEach(bar => bar.style.width = bar.style.width);
+        const marker = document.getElementById('priceMarker');
+        if (marker) {
+           if (currentPrice > maxModel * 2) {
+             marker.style.left = '98%';
+             marker.setAttribute('data-label', `Price >> $${currentPrice.toFixed(2)}`);
+           }
+           marker.classList.add('show');
+        }
+      }, 50);
 
-      // Metrics Grid
+      // Fundamentals Grid
       const metrics = [
         { l: 'Market Cap', v: formatLargeNumber(info.marketCap) },
         { l: 'P/E Ratio', v: info.peRatio ? info.peRatio.toFixed(2) : 'N/A' },
@@ -281,7 +458,12 @@
         { l: 'Beta', v: info.beta ? info.beta.toFixed(2) : 'N/A' },
         { l: 'Div Yield', v: info.dividendYield ? `${(info.dividendYield * 100).toFixed(2)}%` : 'N/A' }
       ];
-      metricsContainer.innerHTML = metrics.map(m => `<div class="mtag"><div class="mtag-v">${m.v}</div><div class="mtag-l">${m.l}</div></div>`).join('');
+      metricsContainer.innerHTML = metrics.map(m => `
+        <div class="metric-card">
+          <div class="metric-val">${m.v}</div>
+          <div class="metric-label">${m.l}</div>
+        </div>
+      `).join('');
     }
 
     function formatLargeNumber(num) {
