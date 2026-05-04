@@ -1,3 +1,5 @@
+import yahooFinance from 'yahoo-finance2'; // Yahoo Finance package
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -7,21 +9,30 @@ export default async function handler(req, res) {
   const AV_KEY = process.env.ALPHA_VANTAGE_API_KEY;
   const FMP_KEY = process.env.FMP_API_KEY;
 
-  if (!AV_KEY && !FMP_KEY) {
-    return res.status(500).json({ error: 'No API keys configured.' });
-  }
-
   try {
     const s = encodeURIComponent(symbol.toUpperCase());
     let data = null;
 
-    if (AV_KEY) data = await fetchFromAlphaVantage(s, AV_KEY);
-    if (!data && FMP_KEY) data = await fetchFromFMP(s, FMP_KEY);
+    // --- PRIORITY 1: YAHOO FINANCE (FREE, NO LIMITS) ---
+    data = await fetchFromYahoo(s);
 
-    if (!data) {
-      return res.status(429).json({ error: 'All API rate limits reached.' });
+    // --- PRIORITY 2: ALPHA VANTAGE (FALLBACK) ---
+    if (!data && AV_KEY) {
+      console.log('Yahoo Finance failed, trying Alpha Vantage...');
+      data = await fetchFromAlphaVantage(s, AV_KEY);
     }
 
+    // --- PRIORITY 3: FMP (FALLBACK) ---
+    if (!data && FMP_KEY) {
+      console.log('Alpha Vantage failed, trying FMP...');
+      data = await fetchFromFMP(s, FMP_KEY);
+    }
+
+    if (!data) {
+      return res.status(500).json({ error: 'All data sources failed to fetch stock data.' });
+    }
+
+    // ===== EXTRACT NORMALIZED DATA =====
     const { 
       name, sector, industry, exchange, marketCap, beta, trailingPE, pbRatio, 
       psRatio, pegRatio, eps, bookValuePS, sharesOut, revenuePerShare, 
@@ -41,15 +52,11 @@ export default async function handler(req, res) {
     }
     if (growthRate <= 0) growthRate = 0.05;
 
-    // ===== 5Y CAGR CALCULATION (Free APIs only give 5 years) =====
+    // ===== 5Y CAGR CALCULATION =====
     let revenueCAGR = null;
-    if (revenues && revenues.length >= 5 && revenues[4] > 0) {
-      revenueCAGR = Math.pow(revenues[0] / revenues[4], 1 / 4) - 1;
-    }
+    if (revenues && revenues.length >= 5 && revenues[4] > 0) revenueCAGR = Math.pow(revenues[0] / revenues[4], 1 / 4) - 1;
     let netIncomeCAGR = null;
-    if (netIncomes.length >= 5 && netIncomes[4] > 0) {
-      netIncomeCAGR = Math.pow(netIncomes[0] / netIncomes[4], 1 / 4) - 1;
-    }
+    if (netIncomes.length >= 5 && netIncomes[4] > 0) netIncomeCAGR = Math.pow(netIncomes[0] / netIncomes[4], 1 / 4) - 1;
 
     // ===== WACC =====
     const riskFree = 0.045;
@@ -69,7 +76,6 @@ export default async function handler(req, res) {
     let peterLynchValue = null;
     if (eps > 0 && growthRate > 0) peterLynchValue = eps * (1 + growthRate);
 
-    // NEW: Peter Lynch Growth Value (Forward 5 years)
     let peterLynchGrowthValue = null;
     if (eps > 0 && growthRate > 0) peterLynchGrowthValue = eps * Math.pow(1 + growthRate, 5);
 
@@ -123,7 +129,68 @@ export default async function handler(req, res) {
   }
 }
 
-// --- FETCH FUNCTIONS (Unchanged from previous, just ensuring revenues are passed) ---
+// ==========================================
+// PRIORITY 1: YAHOO FINANCE SCRAPER
+// ==========================================
+async function fetchFromYahoo(symbol) {
+  try {
+    // Fetch exactly what we need in one call
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'financialData', 'incomeStatementHistory']
+    });
+
+    if (!result || result.quoteType?.error) return null;
+
+    const price = result.price;
+    const stats = result.defaultKeyStatistics;
+    const detail = result.summaryDetail;
+    const finData = result.financialData;
+    
+    // Extract raw numbers (yahoo-finance2 stores numbers in .raw)
+    const currentPrice = price?.regularMarketPrice?.raw || 0;
+    if (currentPrice <= 0) return null;
+
+    // Get 5 years of income history
+    const history = result.incomeStatementHistory?.incomeStatementHistory || [];
+    // Yahoo returns newest first, we reverse it to match our math logic (oldest to newest)
+    const sortedHistory = [...history].reverse().slice(0, 5);
+    const netIncomes = sortedHistory.map(s => s.totalNetIncome?.raw || 0).filter(v => v !== 0);
+    const revenues = sortedHistory.map(s => s.totalRevenue?.raw || 0).filter(v => v !== 0);
+
+    return {
+      name: price.longName,
+      sector: price.sector,
+      industry: price.industry,
+      exchange: price.fullExchangeName,
+      marketCap: price.marketCap?.raw || 0,
+      beta: stats?.beta?.raw || 1,
+      trailingPE: detail?.trailingPE?.raw || 0,
+      psRatio: detail?.priceToSalesTrailing12Months?.raw || 0,
+      pegRatio: stats?.pegRatio?.raw || 0,
+      eps: detail?.trailingEps?.raw || 0,
+      bookValuePS: stats?.bookValue?.raw || 0,
+      sharesOut: stats?.sharesOutstanding?.raw || 0,
+      revenuePerShare: finData?.revenuePerShare?.raw || 0,
+      profitMargin: finData?.profitMargins?.raw || 0,
+      roe: finData?.returnOnEquity?.raw || 0,
+      dividendYield: detail?.dividendYield?.raw || 0,
+      analystTarget: finData?.targetMeanPrice?.raw || 0,
+      qEarningsGrowth: finData?.earningsGrowth?.raw || 0,
+      qRevenueGrowth: finData?.revenueGrowth?.raw || 0,
+      netIncomes,
+      revenues,
+      currentPrice
+    };
+  } catch (e) {
+    console.error('Yahoo Finance Fetch Error:', e.message);
+    return null; // Triggers fallback
+  }
+}
+
+
+// ==========================================
+// FALLBACKS (Alpha Vantage & FMP)
+// ==========================================
 async function fetchFromAlphaVantage(symbol, apiKey) {
   try {
     const fetches = [
@@ -138,7 +205,6 @@ async function fetchFromAlphaVantage(symbol, apiKey) {
     const annualReports = income.annualReports || [];
     const netIncomes = annualReports.slice(0, 5).map(r => parseFloat(r.netIncome) || 0).filter(v => v !== 0);
     const revenues = annualReports.slice(0, 5).map(r => parseFloat(r.totalRevenue) || 0).filter(v => v !== 0);
-
     const eps = parseFloat(overview.EPS) || 0; const bookValuePS = parseFloat(overview.BookValue) || 0;
     const sharesOut = parseFloat(overview.SharesOutstanding) || 0; const trailingPE = parseFloat(overview.TrailingPE) || 0;
     const marketCap = parseFloat(overview.MarketCapitalization) || 0;
