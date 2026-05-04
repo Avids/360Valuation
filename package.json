@@ -2,5 +2,7 @@
   "name": "stock-valuation-compass",
   "version": "1.0.0",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "yahoo-finance2": "^2.11.0"
+  }
 }
