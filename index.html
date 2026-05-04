@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Valuation Compass — Multi-Model Stock Valuation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060a12;
+      --bg-elevated: #0b1120;
+      --card: #0f1729;
+      --card-border: #182540;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --text-muted: #4a5e7a;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0,212,170,0.12);
+      --danger: #ff4757;
+      --danger-dim: rgba(255,71,87,0.12);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h1,h2,h3 { font-family: 'DM Serif Display', serif; }
+
+    /* 背景装饰 */
+    .bg-dots {
+      position: fixed; inset:0; z-index:0; pointer-events:none;
+      background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0);
+      background-size: 36px 36px;
+    }
+    .bg-glow {
+      position:fixed; border-radius:50%; filter:blur(140px); pointer-events:none; z-index:0;
+    }
+    .glow-1 { width:700px; height:700px; top:-300px; right:-250px; background:var(--accent); opacity:0.1; }
+    .glow-2 { width:500px; height:500px; bottom:-200px; left:-200px; background:#ff4757; opacity:0.06; }
+    .glow-3 { width:400px; height:400px; top:40%; left:50%; transform:translateX(-50%); background:#a55eea; opacity:0.04; }
+
+    /* 搜索框 */
+    .search-box {
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      padding: 0.95rem 5.5rem 0.95rem 3.2rem;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 500px;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .search-box:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim), 0 0 40px rgba(0,212,170,0.08);
+    }
+    .search-box::placeholder { color: var(--text-muted); }
+
+    /* 快捷按钮 */
+    .qk {
+      background: var(--bg-elevated);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .qk:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+
+    /* 卡片 */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+
+    /* 图表网格 */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 190px 1fr 110px;
+      gap: 0.65rem 1rem;
+      align-items: center;
+    }
+    .chart-label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      white-space: nowrap;
+    }
+    .label-dot {
+      width: 8px; height:8px; border-radius:50%; flex-shrink:0;
+    }
+    .info-btn {
+      width:15px; height:15px; border-radius:50%; border:1px solid var(--text-muted);
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size:0.5rem; color:var(--text-muted); cursor:help; flex-shrink:0;
+      transition: all 0.2s; line-height:1;
+    }
+    .info-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+    .bar-wrap {
+      height: 38px;
+      position: relative;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height:100%;
+      border-radius: 8px;
+      width: 0;
+      transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .bar-fill::before {
+      content:''; position:absolute; inset:0; border-radius:inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,0.13) 0%, transparent 50%, rgba(0,0,0,0.18) 100%);
+    }
+    .bar-fill::after {
+      content:''; position:absolute; top:0; left:-120%; width:80%; height:100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      transition: left 0.6s ease;
+    }
+    .bar-fill:hover::after { left:120%; }
+    .bar-fill.ref-bar {
+      background: transparent !important;
+      border: 2px dashed var(--accent);
+      box-shadow: none !important;
+    }
+
+    .chart-val {
+      text-align: right;
+      font-size: 0.92rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 当前价格线 */
+    .price-line-cell {
+      grid-column: 2;
+      grid-row: 1 / -1;
+      position: relative;
+      pointer-events: none;
+    }
+    .price-line-el {
+      position: absolute;
+      top: -12px;
+      bottom: -12px;
+      width: 2px;
+      background: var(--accent);
+      left: 0%;
+      opacity: 0;
+      transition: left 1.2s cubic-bezier(0.22,1,0.36,1), opacity 0.5s ease 0.3s;
+      z-index: 5;
+    }
+    .price-line-el.show { opacity:1; }
+    .price-line-el::before {
+      content:'Price';
+      position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+      font-size:0.6rem; font-weight:700; color:var(--accent);
+      white-space:nowrap; letter-spacing:0.06em; text-transform:uppercase;
+    }
+    .price-line-el::after {
+      content:''; position:absolute; inset:0; left:-5px; width:12px;
+      background: rgba(0,212,170,0.12); border-radius:3px;
+    }
+
+    /* 骨架加载 */
+    .skel {
+      background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,0.04) 50%, var(--card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* 徽章 */
+    .badge-ok { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(0,212,170,0.3); }
+    .badge-bad { background:var(--danger-dim); color:var(--danger); border:1px solid rgba(255,71,87,0.3); }
+
+    /* 指标标签 */
+    .mtag {
+      display:flex; flex-direction:column; align-items:center; padding:0.65rem 0.5rem;
+      background:var(--bg-elevated); border-radius:10px; border:1px solid var(--card-border);
+      min-width: 0;
+    }
+    .mtag-v { font-size:0.92rem; font-weight:600; font-variant-numeric:tabular-nums; }
+    .mtag-l { font-size:0.65rem; color:var(--text-muted); margin-top:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+
+    /* 淡入 */
+    .fade-up {
+      opacity:0; transform:translateY(18px);
+      animation: fadeUp 0.55s ease forwards;
+    }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+    /* Toast */
+    .toast-el {
+      position:fixed; bottom:2rem; left:50%; z-index:200;
+      transform:translateX(-50%) translateY(100px);
+      background:var(--card); border:1px solid var(--card-border);
+      color:var(--text); padding:0.7rem 1.4rem; border-radius:12px;
+      font-size:0.82rem; box-shadow:0 10px 40px rgba(0,0,0,0.5);
+      transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    .toast-el.on { transform:translateX(-50%) translateY(0); }
+
+    /* 方法论折叠 */
+    .meth-body { max-height:0; overflow:hidden; transition:max-height 0.4s ease; }
+    .meth-body.open { max-height:600px; }
+
+    /* 响应式 */
+    @media(max-width:860px){
+      .chart-grid { grid-template-columns:140px 1fr 90px; gap:0.5rem 0.6rem; }
+      .chart-label { font-size:0.72rem; }
+      .chart-val { font-size:0.8rem; }
+      .bar-wrap { height:30px; }
+    }
+    @media(max-width:540px){
+      .chart-grid { grid-template-columns:1fr; gap:0.15rem 0; }
+      .chart-label { font-size:0.7rem; }
+      .chart-val { font-size:0.78rem; text-align:left; }
+      .bar-wrap { height:26px; }
+      .price-line-cell { display:none; }
+    }
+
+    @media(prefers-reduced-motion:reduce){
+      .bar-fill,.price-line-el { transition:none; }
+      .skel { animation:none; }
+      .fade-up { animation:none; opacity:1; transform:none; }
+    }
+
+    ::-webkit-scrollbar { width:7px; }
+    ::-webkit-scrollbar-track { background:var(--bg); }
+    ::-webkit-scrollbar-thumb { background:var(--card-border); border-radius:4px; }
+    ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+  </style>
+</head>
+<body>
+  <!-- 背景 -->
+  <div class="bg-dots"></div>
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+  <div class="bg-glow glow-3"></div>
+
+  <div class="relative z-10 min-h-screen flex flex-col">
+
+    <!-- 顶栏 -->
+    <header class="py-5 px-5">
+      <div class="max-w-5xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,var(--accent),#0a7e63);">
+            <i class="fas fa-compass text-white text-sm"></i>
+          </div>
+          <div>
+            <h1 class="text-base leading-tight" style="color:var(--accent);">Valuation Compass</h1>
+            <p class="text-[0.65rem]" style="color:var(--text-muted);">Multi-Model Intrinsic Value</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-[0.65rem] hidden sm:inline" style="color:var(--text-muted);">
+            <i class="fas fa-database mr-1"></i>Alpha Vantage + Finnhub
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主区域 -->
+    <main class="flex-1 px-5 pb-12">
+      <div class="max-w-5xl mx-auto">
+
+        <!-- 搜索 -->
+        <section class="text-center pt-6 pb-10" id="searchSection">
+          <h2 class="text-3xl md:text-[2.6rem] mb-2.5 leading-tight">Discover Intrinsic Value</h2>
+          <p class="mb-7 mx-auto text-sm" style="color:var(--text-dim); max-width:460px;">
+            Compare
