@@ -1,8 +1,8 @@
-import yahooFinance from 'yahoo-finance2'; // Yahoo Finance package
+import yahooFinance from 'yahoo-finance2';
+yahooFinance.setGlobalConfig({ validation: { logErrors: false, logWarns: false }, logger: { disable: true } });
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-
   const { symbol } = req.query;
   if (!symbol) return res.status(400).json({ error: 'Stock symbol is required' });
 
@@ -13,26 +13,12 @@ export default async function handler(req, res) {
     const s = encodeURIComponent(symbol.toUpperCase());
     let data = null;
 
-    // --- PRIORITY 1: YAHOO FINANCE (FREE, NO LIMITS) ---
     data = await fetchFromYahoo(s);
+    if (!data && AV_KEY) data = await fetchFromAlphaVantage(s, AV_KEY);
+    if (!data && FMP_KEY) data = await fetchFromFMP(s, FMP_KEY);
 
-    // --- PRIORITY 2: ALPHA VANTAGE (FALLBACK) ---
-    if (!data && AV_KEY) {
-      console.log('Yahoo Finance failed, trying Alpha Vantage...');
-      data = await fetchFromAlphaVantage(s, AV_KEY);
-    }
+    if (!data) return res.status(500).json({ error: 'All data sources failed.' });
 
-    // --- PRIORITY 3: FMP (FALLBACK) ---
-    if (!data && FMP_KEY) {
-      console.log('Alpha Vantage failed, trying FMP...');
-      data = await fetchFromFMP(s, FMP_KEY);
-    }
-
-    if (!data) {
-      return res.status(500).json({ error: 'All data sources failed to fetch stock data.' });
-    }
-
-    // ===== EXTRACT NORMALIZED DATA =====
     const { 
       name, sector, industry, exchange, marketCap, beta, trailingPE, pbRatio, 
       psRatio, pegRatio, eps, bookValuePS, sharesOut, revenuePerShare, 
@@ -40,9 +26,9 @@ export default async function handler(req, res) {
       qRevenueGrowth, netIncomes, revenues, currentPrice 
     } = data;
 
-    if (currentPrice <= 0) return res.status(404).json({ error: 'Unable to determine current price.' });
+    if (currentPrice <= 0) return res.status(404).json({ error: 'Unable to determine price.' });
 
-    // ===== GROWTH RATES =====
+    // ===== GROWTH ESTIMATION =====
     let growthRate = 0;
     if (qEarningsGrowth > 0) growthRate = Math.min(qEarningsGrowth, 0.30);
     else if (qRevenueGrowth > 0) growthRate = Math.min(qRevenueGrowth, 0.25);
@@ -52,11 +38,29 @@ export default async function handler(req, res) {
     }
     if (growthRate <= 0) growthRate = 0.05;
 
-    // ===== 5Y CAGR CALCULATION =====
+    // ===== FIXED 5-YEAR CAGR CALCULATION =====
+    // We need the array to be OLDEST -> NEWEST (e.g. [2019, 2023]) to calculate (End/Start)^(1/Years)-1
     let revenueCAGR = null;
-    if (revenues && revenues.length >= 5 && revenues[4] > 0) revenueCAGR = Math.pow(revenues[0] / revenues[4], 1 / 4) - 1;
     let netIncomeCAGR = null;
-    if (netIncomes.length >= 5 && netIncomes[4] > 0) netIncomeCAGR = Math.pow(netIncomes[0] / netIncomes[4], 1 / 4) - 1;
+    
+    if (revenues && revenues.length >= 5) {
+      // Reverse array if newest is first (APIs usually return newest first)
+      const revSorted = [...revenues].reverse();
+      const startRev = revSorted[0];
+      const endRev = revSorted[revSorted.length - 1];
+      if (startRev > 0 && endRev > 0) {
+        revenueCAGR = Math.pow(endRev / startRev, 1 / 4) - 1; // 4 because 5 data points = 4 years of growth
+      }
+    }
+
+    if (netIncomes && netIncomes.length >= 5) {
+      const incSorted = [...netIncomes].reverse();
+      const startInc = incSorted[0];
+      const endInc = incSorted[incSorted.length - 1];
+      if (startInc > 0 && endInc > 0) {
+        netIncomeCAGR = Math.pow(endInc / startInc, 1 / 4) - 1;
+      }
+    }
 
     // ===== WACC =====
     const riskFree = 0.045;
@@ -94,17 +98,27 @@ export default async function handler(req, res) {
       dcfValue = totalPV / sharesOut;
     }
 
+    // ===== FIXED GF VALUE CALCULATION =====
+    // We NO LONGER delete models just because they are 10x the current price.
+    // We only delete models if they are negative, zero, or completely absurd (100x).
     let gfValue = null;
     const wMap = { dcf: 0.35, epv: 0.30, peterLynch: 0.20, graham: 0.15 };
     let wSum = 0, wTotal = 0;
-    if (dcfValue && dcfValue > 0 && dcfValue < currentPrice * 10) { wSum += dcfValue * wMap.dcf; wTotal += wMap.dcf; }
-    if (epv && epv > 0 && epv < currentPrice * 10) { wSum += epv * wMap.epv; wTotal += wMap.epv; }
-    if (peterLynchValue && peterLynchValue > 0 && peterLynchValue < currentPrice * 10) { wSum += peterLynchValue * wMap.peterLynch; wTotal += wMap.peterLynch; }
-    if (grahamNumber && grahamNumber > 0 && grahamNumber < currentPrice * 10) { wSum += grahamNumber * wMap.graham; wTotal += wMap.graham; }
+
+    const isValid = (v) => v !== null && v !== undefined && isFinite(v) && v > 0 && v < currentPrice * 100;
+
+    if (isValid(dcfValue) && dcfValue > 0) { wSum += dcfValue * wMap.dcf; wTotal += wMap.dcf; }
+    if (isValid(epv)) { wSum += epv * wMap.epv; wTotal += wMap.epv; }
+    if (isValid(peterLynchValue)) { wSum += peterLynchValue * wMap.peterLynch; wTotal += wMap.peterLynch; }
+    if (isValid(grahamNumber)) { wSum += grahamNumber * wMap.graham; wTotal += wMap.graham; }
+
     if (wTotal > 0) gfValue = wSum / wTotal;
 
+    // ===== FIXED MARGIN OF SAFETY =====
     let marginOfSafety = null;
-    if (gfValue && gfValue > 0) marginOfSafety = ((gfValue - currentPrice) / gfValue) * 100;
+    if (gfValue && gfValue > 0) {
+      marginOfSafety = ((gfValue - currentPrice) / gfValue) * 100;
+    }
 
     const r = v => v !== null && v !== undefined && isFinite(v) ? Math.round(v * 100) / 100 : null;
 
@@ -130,15 +144,13 @@ export default async function handler(req, res) {
 }
 
 // ==========================================
-// PRIORITY 1: YAHOO FINANCE SCRAPER
+// DATA FETCHERS
 // ==========================================
 async function fetchFromYahoo(symbol) {
   try {
-    // Fetch exactly what we need in one call
     const result = await yahooFinance.quoteSummary(symbol, {
       modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'financialData', 'incomeStatementHistory']
     });
-
     if (!result || result.quoteType?.error) return null;
 
     const price = result.price;
@@ -146,51 +158,31 @@ async function fetchFromYahoo(symbol) {
     const detail = result.summaryDetail;
     const finData = result.financialData;
     
-    // Extract raw numbers (yahoo-finance2 stores numbers in .raw)
     const currentPrice = price?.regularMarketPrice?.raw || 0;
     if (currentPrice <= 0) return null;
 
-    // Get 5 years of income history
+    // Yahoo returns arrays newest-first. We keep it newest-first for the backend math.
     const history = result.incomeStatementHistory?.incomeStatementHistory || [];
-    // Yahoo returns newest first, we reverse it to match our math logic (oldest to newest)
-    const sortedHistory = [...history].reverse().slice(0, 5);
-    const netIncomes = sortedHistory.map(s => s.totalNetIncome?.raw || 0).filter(v => v !== 0);
-    const revenues = sortedHistory.map(s => s.totalRevenue?.raw || 0).filter(v => v !== 0);
+    const netIncomes = history.slice(0, 5).map(s => s.totalNetIncome?.raw || 0).filter(v => v !== 0);
+    const revenues = history.slice(0, 5).map(s => s.totalRevenue?.raw || 0).filter(v => v !== 0);
 
     return {
-      name: price.longName,
-      sector: price.sector,
-      industry: price.industry,
-      exchange: price.fullExchangeName,
-      marketCap: price.marketCap?.raw || 0,
-      beta: stats?.beta?.raw || 1,
-      trailingPE: detail?.trailingPE?.raw || 0,
-      psRatio: detail?.priceToSalesTrailing12Months?.raw || 0,
-      pegRatio: stats?.pegRatio?.raw || 0,
-      eps: detail?.trailingEps?.raw || 0,
-      bookValuePS: stats?.bookValue?.raw || 0,
-      sharesOut: stats?.sharesOutstanding?.raw || 0,
-      revenuePerShare: finData?.revenuePerShare?.raw || 0,
-      profitMargin: finData?.profitMargins?.raw || 0,
-      roe: finData?.returnOnEquity?.raw || 0,
-      dividendYield: detail?.dividendYield?.raw || 0,
-      analystTarget: finData?.targetMeanPrice?.raw || 0,
-      qEarningsGrowth: finData?.earningsGrowth?.raw || 0,
-      qRevenueGrowth: finData?.revenueGrowth?.raw || 0,
-      netIncomes,
-      revenues,
-      currentPrice
+      name: price.longName, sector: price.sector, industry: price.industry, exchange: price.fullExchangeName,
+      marketCap: price.marketCap?.raw || 0, beta: stats?.beta?.raw || 1, trailingPE: detail?.trailingPE?.raw || 0,
+      psRatio: detail?.priceToSalesTrailing12Months?.raw || 0, pegRatio: stats?.pegRatio?.raw || 0,
+      eps: detail?.trailingEps?.raw || 0, bookValuePS: stats?.bookValue?.raw || 0,
+      sharesOut: stats?.sharesOutstanding?.raw || 0, revenuePerShare: finData?.revenuePerShare?.raw || 0,
+      profitMargin: finData?.profitMargins?.raw || 0, roe: finData?.returnOnEquity?.raw || 0,
+      dividendYield: detail?.dividendYield?.raw || 0, analystTarget: finData?.targetMeanPrice?.raw || 0,
+      qEarningsGrowth: finData?.earningsGrowth?.raw || 0, qRevenueGrowth: finData?.revenueGrowth?.raw || 0,
+      netIncomes, revenues, currentPrice
     };
   } catch (e) {
-    console.error('Yahoo Finance Fetch Error:', e.message);
-    return null; // Triggers fallback
+    console.error('Yahoo Error:', e.message);
+    return null;
   }
 }
 
-
-// ==========================================
-// FALLBACKS (Alpha Vantage & FMP)
-// ==========================================
 async function fetchFromAlphaVantage(symbol, apiKey) {
   try {
     const fetches = [
@@ -203,8 +195,11 @@ async function fetchFromAlphaVantage(symbol, apiKey) {
     if (overview['Error Message'] || overview['Note'] || overview['Information']) return null;
 
     const annualReports = income.annualReports || [];
-    const netIncomes = annualReports.slice(0, 5).map(r => parseFloat(r.netIncome) || 0).filter(v => v !== 0);
-    const revenues = annualReports.slice(0, 5).map(r => parseFloat(r.totalRevenue) || 0).filter(v => v !== 0);
+    // AV returns oldest first. We reverse to match our standard (newest first).
+    const reversed = [...annualReports].reverse();
+    const netIncomes = reversed.slice(0, 5).map(r => parseFloat(r.netIncome) || 0).filter(v => v !== 0);
+    const revenues = reversed.slice(0, 5).map(r => parseFloat(r.totalRevenue) || 0).filter(v => v !== 0);
+    
     const eps = parseFloat(overview.EPS) || 0; const bookValuePS = parseFloat(overview.BookValue) || 0;
     const sharesOut = parseFloat(overview.SharesOutstanding) || 0; const trailingPE = parseFloat(overview.TrailingPE) || 0;
     const marketCap = parseFloat(overview.MarketCapitalization) || 0;
@@ -235,6 +230,7 @@ async function fetchFromFMP(symbol, apiKey) {
     ]);
     if (!profileRes || profileRes.length === 0 || profileRes.Error) return null;
     const p = profileRes[0];
+    // FMP returns newest first
     const netIncomes = Array.isArray(incomeRes) ? incomeRes.slice(0, 5).map(r => parseFloat(r.netIncome) || 0).filter(v => v !== 0) : [];
     const revenues = Array.isArray(incomeRes) ? incomeRes.slice(0, 5).map(r => parseFloat(r.revenue) || 0).filter(v => v !== 0) : [];
     const currentPrice = parseFloat(p.price) || 0;
