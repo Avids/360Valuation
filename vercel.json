@@ -1,6 +1,9 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "name": "stock-valuation-compass",
+  "version": "1.0.2",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "yahoo-finance2": "^2.13.0"
+  }
 }
