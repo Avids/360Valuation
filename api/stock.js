@@ -12,27 +12,22 @@ export default async function handler(req, res) {
     let priceData = null;
     let fundamentalsData = null;
 
-    // --- STEP 1: GET PRICE DATA ---
-    // Try Finage first (Super fast for price/quotes), fallback to FMP
     if (FINAGE_KEY) priceData = await fetchPriceFromFinage(s, FINAGE_KEY);
     if (!priceData && FMP_KEY) priceData = await fetchPriceFromFMP(s, FMP_KEY);
     if (!priceData && AV_KEY) priceData = await fetchPriceFromAV(s, AV_KEY);
 
     if (!priceData) return res.status(404).json({ error: 'Could not fetch price data for this symbol.' });
 
-    // --- STEP 2: GET FUNDAMENTAL DATA (Income Statements) ---
     if (FMP_KEY) fundamentalsData = await fetchFundamentalsFromFMP(s, FMP_KEY);
     if (!fundamentalsData && AV_KEY) fundamentalsData = await fetchFundamentalsFromAV(s, AV_KEY);
 
     if (!fundamentalsData) return res.status(404).json({ error: 'Could not fetch financial statements. Add FMP_API_KEY.' });
 
-    // --- MERGE DATA ---
     const data = { ...priceData, ...fundamentalsData };
     const { name, sector, industry, exchange, marketCap, beta, trailingPE, pbRatio, psRatio, pegRatio, eps, bookValuePS, sharesOut, revenuePerShare, profitMargin, roe, dividendYield, analystTarget, qEarningsGrowth, qRevenueGrowth, netIncomes, revenues, currentPrice } = data;
 
     if (currentPrice <= 0) return res.status(404).json({ error: 'Invalid current price.' });
 
-    // --- MATH ENGINE ---
     let growthRate = 0;
     if (qEarningsGrowth > 0) growthRate = Math.min(qEarningsGrowth, 0.30);
     else if (qRevenueGrowth > 0) growthRate = Math.min(qRevenueGrowth, 0.25);
@@ -86,17 +81,11 @@ export default async function handler(req, res) {
 // ==========================================
 async function fetchPriceFromFinage(symbol, apiKey) {
   try {
-    // Finage US Stock endpoint
     const res = await fetch(`https://api.finage.co.uk/last/stock/${symbol}?apikey=${apiKey}`);
     if (!res.ok) return null;
     const d = await res.json();
     if (!d.ask || d.ask <= 0) return null;
-    
-    // Finage gives raw price, we need to estimate the rest or let FMP fill it
-    return {
-      currentPrice: d.ask,
-      exchange: 'US Market' // Finage doesn't provide name/sector easily on free tier
-    };
+    return { currentPrice: d.ask, exchange: 'US Market' };
   } catch (e) { return null; }
 }
 
