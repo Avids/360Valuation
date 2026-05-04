@@ -32,7 +32,6 @@
     }
     h1,h2,h3 { font-family: 'DM Serif Display', serif; }
 
-    /* 背景装饰 */
     .bg-dots {
       position: fixed; inset:0; z-index:0; pointer-events:none;
       background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0);
@@ -45,7 +44,6 @@
     .glow-2 { width:500px; height:500px; bottom:-200px; left:-200px; background:#ff4757; opacity:0.06; }
     .glow-3 { width:400px; height:400px; top:40%; left:50%; transform:translateX(-50%); background:#a55eea; opacity:0.04; }
 
-    /* 搜索框 */
     .search-box {
       background: var(--card);
       border: 1.5px solid var(--card-border);
@@ -65,7 +63,16 @@
     }
     .search-box::placeholder { color: var(--text-muted); }
 
-    /* 快捷按钮 */
+    .search-btn {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      background: var(--accent); color: #060a12; border: none; padding: 0.65rem 1.2rem;
+      border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .search-btn:hover { background: #00eabb; }
+    .search-btn:active { transform: translateY(-50%) scale(0.95); }
+
     .qk {
       background: var(--bg-elevated);
       border: 1px solid var(--card-border);
@@ -81,7 +88,6 @@
     }
     .qk:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
 
-    /* 卡片 */
     .card {
       background: var(--card);
       border: 1px solid var(--card-border);
@@ -89,12 +95,12 @@
       padding: 1.5rem;
     }
 
-    /* 图表网格 */
     .chart-grid {
       display: grid;
       grid-template-columns: 190px 1fr 110px;
       gap: 0.65rem 1rem;
       align-items: center;
+      position: relative;
     }
     .chart-label {
       font-size: 0.82rem;
@@ -140,11 +146,6 @@
       transition: left 0.6s ease;
     }
     .bar-fill:hover::after { left:120%; }
-    .bar-fill.ref-bar {
-      background: transparent !important;
-      border: 2px dashed var(--accent);
-      box-shadow: none !important;
-    }
 
     .chart-val {
       text-align: right;
@@ -153,12 +154,12 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* 当前价格线 */
     .price-line-cell {
       grid-column: 2;
       grid-row: 1 / -1;
       position: relative;
       pointer-events: none;
+      height: 100%;
     }
     .price-line-el {
       position: absolute;
@@ -183,7 +184,6 @@
       background: rgba(0,212,170,0.12); border-radius:3px;
     }
 
-    /* 骨架加载 */
     .skel {
       background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,0.04) 50%, var(--card) 75%);
       background-size: 200% 100%;
@@ -192,11 +192,9 @@
     }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-    /* 徽章 */
-    .badge-ok { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(0,212,170,0.3); }
-    .badge-bad { background:var(--danger-dim); color:var(--danger); border:1px solid rgba(255,71,87,0.3); }
+    .badge-ok { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(0,212,170,0.3); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;}
+    .badge-bad { background:var(--danger-dim); color:var(--danger); border:1px solid rgba(255,71,87,0.3); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;}
 
-    /* 指标标签 */
     .mtag {
       display:flex; flex-direction:column; align-items:center; padding:0.65rem 0.5rem;
       background:var(--bg-elevated); border-radius:10px; border:1px solid var(--card-border);
@@ -205,29 +203,22 @@
     .mtag-v { font-size:0.92rem; font-weight:600; font-variant-numeric:tabular-nums; }
     .mtag-l { font-size:0.65rem; color:var(--text-muted); margin-top:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 
-    /* 淡入 */
     .fade-up {
       opacity:0; transform:translateY(18px);
       animation: fadeUp 0.55s ease forwards;
     }
     @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
 
-    /* Toast */
     .toast-el {
       position:fixed; bottom:2rem; left:50%; z-index:200;
       transform:translateX(-50%) translateY(100px);
-      background:var(--card); border:1px solid var(--card-border);
-      color:var(--text); padding:0.7rem 1.4rem; border-radius:12px;
+      background:var(--card); border:1px solid var(--danger);
+      color:var(--danger); padding:0.7rem 1.4rem; border-radius:12px;
       font-size:0.82rem; box-shadow:0 10px 40px rgba(0,0,0,0.5);
       transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
     }
     .toast-el.on { transform:translateX(-50%) translateY(0); }
 
-    /* 方法论折叠 */
-    .meth-body { max-height:0; overflow:hidden; transition:max-height 0.4s ease; }
-    .meth-body.open { max-height:600px; }
-
-    /* 响应式 */
     @media(max-width:860px){
       .chart-grid { grid-template-columns:140px 1fr 90px; gap:0.5rem 0.6rem; }
       .chart-label { font-size:0.72rem; }
@@ -255,15 +246,12 @@
   </style>
 </head>
 <body>
-  <!-- 背景 -->
   <div class="bg-dots"></div>
   <div class="bg-glow glow-1"></div>
   <div class="bg-glow glow-2"></div>
   <div class="bg-glow glow-3"></div>
 
   <div class="relative z-10 min-h-screen flex flex-col">
-
-    <!-- 顶栏 -->
     <header class="py-5 px-5">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -283,12 +271,293 @@
       </div>
     </header>
 
-    <!-- 主区域 -->
     <main class="flex-1 px-5 pb-12">
       <div class="max-w-5xl mx-auto">
 
-        <!-- 搜索 -->
+        <!-- Search Section -->
         <section class="text-center pt-6 pb-10" id="searchSection">
           <h2 class="text-3xl md:text-[2.6rem] mb-2.5 leading-tight">Discover Intrinsic Value</h2>
           <p class="mb-7 mx-auto text-sm" style="color:var(--text-dim); max-width:460px;">
-            Compare
+            Compare multiple valuation models against the current price to find margin of safety.
+          </p>
+          
+          <div class="relative inline-block w-full max-w-[500px]">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2" style="color:var(--text-muted);"></i>
+            <input type="text" id="tickerInput" class="search-box" placeholder="Enter ticker (e.g. AAPL)" autocomplete="off" spellcheck="false">
+            <button id="searchBtn" class="search-btn">Analyze</button>
+          </div>
+
+          <div class="mt-4 flex flex-wrap justify-center gap-2">
+            <button class="qk" data-symbol="AAPL">AAPL</button>
+            <button class="qk" data-symbol="MSFT">MSFT</button>
+            <button class="qk" data-symbol="GOOGL">GOOGL</button>
+            <button class="qk" data-symbol="AMZN">AMZN</button>
+            <button class="qk" data-symbol="TSLA">TSLA</button>
+            <button class="qk" data-symbol="NVDA">NVDA</button>
+          </div>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden max-w-3xl mx-auto">
+          <div class="card mb-4 flex items-center gap-4">
+            <div class="skel w-12 h-12 rounded-full flex-shrink-0"></div>
+            <div class="flex-1">
+              <div class="skel h-5 w-48 mb-2"></div>
+              <div class="skel h-3 w-32"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="space-y-4">
+              <div class="skel h-8 w-full"></div>
+              <div class="skel h-8 w-3/4"></div>
+              <div class="skel h-8 w-5/6"></div>
+              <div class="skel h-8 w-2/3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden max-w-xl mx-auto text-center py-10">
+          <i class="fas fa-exclamation-triangle text-4xl mb-4" style="color:var(--danger);"></i>
+          <h3 class="text-xl mb-2" style="color:var(--danger);">Analysis Failed</h3>
+          <p id="errorMessage" class="text-sm" style="color:var(--text-dim);"></p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsState" class="hidden max-w-5xl mx-auto">
+          
+          <!-- Header Card -->
+          <div class="card mb-4 fade-up">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 class="text-2xl mb-1" id="resName">AAPL</h2>
+                <div class="flex items-center gap-2 text-xs" style="color:var(--text-muted);">
+                  <span id="resSector">Technology</span> • <span id="resIndustry">Consumer Electronics</span>
+                </div>
+              </div>
+              <div class="flex items-end gap-6">
+                <div class="text-right">
+                  <div class="text-[0.65rem] uppercase tracking-wider mb-1" style="color:var(--text-muted);">Current Price</div>
+                  <div class="text-2xl font-bold" id="resPrice">$0.00</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-[0.65rem] uppercase tracking-wider mb-1" style="color:var(--text-muted);">GF Value</div>
+                  <div class="text-2xl font-bold" style="color:var(--accent);" id="resGfValue">$0.00</div>
+                </div>
+                <div id="resMosBadge"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart Card -->
+          <div class="card mb-4 fade-up" style="animation-delay: 0.1s;">
+            <h3 class="text-sm font-semibold mb-5 uppercase tracking-wider" style="color:var(--text-muted);">Valuation Models vs Price</h3>
+            <div class="chart-grid" id="chartContainer">
+              <!-- The Current Price Line Overlay -->
+              <div class="price-line-cell">
+                <div class="price-line-el" id="priceLineEl"></div>
+              </div>
+              <!-- Rows will be injected here by JS -->
+            </div>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="card fade-up" style="animation-delay: 0.2s;">
+            <h3 class="text-sm font-semibold mb-4 uppercase tracking-wider" style="color:var(--text-muted);">Key Fundamentals</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2" id="metricsContainer">
+              <!-- Metrics injected here -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-el" id="toast"></div>
+
+  <script>
+    // DOM Elements
+    const tickerInput = document.getElementById('tickerInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchSection = document.getElementById('searchSection');
+    const loadingState = document.getElementById('loadingState');
+    const errorState = document.getElementById('errorState');
+    const errorMessage = document.getElementById('errorMessage');
+    const resultsState = document.getElementById('resultsState');
+    const chartContainer = document.getElementById('chartContainer');
+    const metricsContainer = document.getElementById('metricsContainer');
+    const priceLineEl = document.getElementById('priceLineEl');
+    const toastEl = document.getElementById('toast');
+
+    // Event Listeners
+    searchBtn.addEventListener('click', () => handleSearch());
+    tickerInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSearch();
+    });
+
+    document.querySelectorAll('.qk').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tickerInput.value = btn.dataset.symbol;
+        handleSearch();
+      });
+    });
+
+    function showToast(msg) {
+      toastEl.innerText = msg;
+      toastEl.classList.add('on');
+      setTimeout(() => toastEl.classList.remove('on'), 4000);
+    }
+
+    function showView(view) {
+      loadingState.classList.add('hidden');
+      errorState.classList.add('hidden');
+      resultsState.classList.add('hidden');
+      
+      if (view === 'loading') loadingState.classList.remove('hidden');
+      if (view === 'error') errorState.classList.remove('hidden');
+      if (view === 'results') resultsState.classList.remove('hidden');
+    }
+
+    async function handleSearch() {
+      const symbol = tickerInput.value.trim();
+      if (!symbol) return;
+
+      showView('loading');
+
+      try {
+        const res = await fetch(`/api/stock?symbol=${encodeURIComponent(symbol)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to fetch data');
+        }
+
+        renderResults(data);
+        showView('results');
+        
+      } catch (err) {
+        errorMessage.innerText = err.message;
+        showView('error');
+        if (err.message.includes('rate limit')) {
+            showToast("Alpha Vantage limit hit. Wait 5 mins or use a different key.");
+        }
+      }
+    }
+
+    function renderResults(data) {
+      const { currentPrice, gfValue, info } = data;
+      
+      // Header
+      document.getElementById('resName').innerText = `${info.name} (${info.symbol})`;
+      document.getElementById('resSector').innerText = info.sector;
+      document.getElementById('resIndustry').innerText = info.industry;
+      document.getElementById('resPrice').innerText = `$${currentPrice.toFixed(2)}`;
+      document.getElementById('resGfValue').innerText = gfValue ? `$${gfValue.toFixed(2)}` : 'N/A';
+
+      // Margin of Safety Badge
+      const mosBadge = document.getElementById('resMosBadge');
+      if (data.marginOfSafety !== null) {
+        const isSafe = data.marginOfSafety >= 0;
+        mosBadge.innerHTML = `
+          <div class="${isSafe ? 'badge-ok' : 'badge-bad'}">
+            ${isSafe ? '+' : ''}${data.marginOfSafety.toFixed(1)}% MOS
+          </div>
+        `;
+      } else {
+        mosBadge.innerHTML = '';
+      }
+
+      // Chart Data Setup
+      const models = [
+        { label: 'Graham Number', value: data.grahamNumber, tip: '√(22.5 × EPS × Book Value)' },
+        { label: 'Earnings Power Value', value: data.epv, tip: 'Avg EPS / WACC' },
+        { label: 'Peter Lynch Fair Value', value: data.peterLynchValue, tip: 'EPS × (PEG × Growth + 1)' },
+        { label: 'P/S Fair Value', value: data.psFairValue, tip: 'Revenue/Share × Fair P/S Multiple' },
+        { label: 'DCF Fair Value', value: data.dcfValue, tip: 'Discounted 5-Yr Cash Flows + Terminal' },
+        { label: 'GF Value (Weighted)', value: gfValue, tip: 'Weighted combo of models' },
+        { label: 'Analyst Target', value: data.analystTarget, tip: 'Wall Street consensus target' }
+      ];
+
+      // Calculate max scale for bars
+      const allValues = models.map(m => m.value).filter(v => v !== null && v > 0);
+      allValues.push(currentPrice);
+      const maxScale = Math.max(...allValues) * 1.2; // 20% padding
+
+      // Clear old rows (keep price-line-cell)
+      const priceLineCell = document.querySelector('.price-line-cell');
+      chartContainer.innerHTML = '';
+      chartContainer.appendChild(priceLineCell);
+
+      // Render Chart Rows
+      models.forEach(model => {
+        if (model.value === null) return;
+
+        const widthPercent = Math.min((model.value / maxScale) * 100, 100);
+        const isUndervalued = model.value > currentPrice;
+        const barColor = isUndervalued ? 'var(--accent)' : 'var(--danger)';
+        const boxShadow = isUndervalued ? '0 0 20px rgba(0,212,170,0.3)' : '0 0 20px rgba(255,71,87,0.3)';
+
+        const rowHtml = `
+          <div class="chart-label">
+            <span class="label-dot" style="background:${barColor};"></span>
+            ${model.label}
+            <span class="info-btn" title="${model.tip}">?</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-fill" style="width: ${widthPercent}%; background-color: ${barColor}; box-shadow: ${boxShadow};"></div>
+          </div>
+          <div class="chart-val" style="color: ${barColor};">
+            $${model.value.toFixed(2)}
+          </div>
+        `;
+        chartContainer.insertAdjacentHTML('beforeend', rowHtml);
+      });
+
+      // Position Current Price Line
+      const pricePercent = Math.min((currentPrice / maxScale) * 100, 100);
+      priceLineEl.style.left = `${pricePercent}%`;
+      
+      // Trigger animations by forcing reflow
+      void chartContainer.offsetWidth;
+      priceLineEl.classList.add('show');
+      document.querySelectorAll('.bar-fill').forEach(bar => {
+        bar.style.width = bar.style.width; // Trigger CSS transition
+      });
+
+      // Metrics Grid
+      const metrics = [
+        { l: 'Market Cap', v: formatLargeNumber(info.marketCap) },
+        { l: 'P/E Ratio', v: info.peRatio ? info.peRatio.toFixed(2) : 'N/A' },
+        { l: 'P/B Ratio', v: info.pbRatio ? info.pbRatio.toFixed(2) : 'N/A' },
+        { l: 'P/S Ratio', v: info.psRatio ? info.psRatio.toFixed(2) : 'N/A' },
+        { l: 'PEG Ratio', v: info.pegRatio ? info.pegRatio.toFixed(2) : 'N/A' },
+        { l: 'EPS', v: info.eps ? `$${info.eps.toFixed(2)}` : 'N/A' },
+        { l: 'Book Value', v: info.bookValue ? `$${info.bookValue.toFixed(2)}` : 'N/A' },
+        { l: 'ROE', v: info.roe ? `${(info.roe * 100).toFixed(1)}%` : 'N/A' },
+        { l: 'Profit Margin', v: info.profitMargin ? `${(info.profitMargin * 100).toFixed(1)}%` : 'N/A' },
+        { l: 'Growth Rate', v: info.growthRate ? `${(info.growthRate * 100).toFixed(1)}%` : 'N/A' },
+        { l: 'Beta', v: info.beta ? info.beta.toFixed(2) : 'N/A' },
+        { l: 'Div Yield', v: info.dividendYield ? `${(info.dividendYield * 100).toFixed(2)}%` : 'N/A' },
+      ];
+
+      metricsContainer.innerHTML = metrics.map(m => `
+        <div class="mtag">
+          <div class="mtag-v">${m.v}</div>
+          <div class="mtag-l">${m.l}</div>
+        </div>
+      `).join('');
+    }
+
+    function formatLargeNumber(num) {
+      if (!num) return 'N/A';
+      if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+      if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+      if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+      return `$${num}`;
+    }
+  </script>
+</body>
+</html>
